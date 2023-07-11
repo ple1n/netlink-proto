@@ -22,7 +22,7 @@ impl<T> ConnectionHandle<T>
 where
     T: Debug,
 {
-    pub(crate) fn new(requests_tx: UnboundedSender<Request<T>>) -> Self {
+    pub fn new(requests_tx: UnboundedSender<Request<T>>) -> Self {
         ConnectionHandle { requests_tx }
     }
 

@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 use futures::StreamExt;
-use netlink_packet_route::{
-    LinkMessage, NetlinkHeader, NetlinkMessage, RtnlMessage, NLM_F_DUMP,
-    NLM_F_REQUEST,
-};
+use netlink_packet_route::{LinkMessage, RtnlMessage};
 use netlink_proto::{
     new_connection,
     sys::{protocols::NETLINK_ROUTE, SocketAddr},
 };
+use netlink_packet_core::{NLM_F_DUMP, NLM_F_REQUEST, NetlinkHeader, NetlinkMessage};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

@@ -7,7 +7,7 @@ use netlink_packet_core::NetlinkMessage;
 use crate::sys::SocketAddr;
 
 #[derive(Debug)]
-pub(crate) struct Request<T, M> {
+pub struct Request<T, M> {
     pub metadata: M,
     pub message: NetlinkMessage<T>,
     pub destination: SocketAddr,
