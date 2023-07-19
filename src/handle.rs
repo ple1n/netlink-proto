@@ -22,6 +22,8 @@ impl<T> ConnectionHandle<T>
 where
     T: Debug,
 {
+    // Here is the thing to be proxied
+    // requests_tx is a sender that gets requests with a callback-sender attached
     pub fn new(requests_tx: UnboundedSender<Request<T>>) -> Self {
         ConnectionHandle { requests_tx }
     }

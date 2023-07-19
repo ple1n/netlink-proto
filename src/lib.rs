@@ -173,6 +173,7 @@ pub use crate::framed::*;
 
 mod protocol;
 pub use self::protocol::{Protocol, Response};
+
 pub type Request<T> = self::protocol::Request<
     T,
     UnboundedSender<crate::packet::NetlinkMessage<T>>,

@@ -12,12 +12,15 @@ repository = "https://github.com/rust-netlink/netlink-proto"
 description = "async netlink protocol"
 
 [dependencies]
-bytes = "1.0"
+bytes = { version = "1.0", features = ["serde"] }
 log = "0.4.8"
 futures = "0.3"
-tokio = { version = "1.0", default-features = false, features = ["io-util","time"] }
+tokio = { version = "1.0", default-features = false, features = [
+    "io-util",
+    "time",
+] }
 netlink-packet-core = "0.7.0"
-netlink-sys = { default-features = false, version = "0.8.4" }
+netlink-sys = { git = "https://github.com/planetoryd/netlink-sys" }
 thiserror = "1.0.30"
 
 [features]
@@ -27,10 +30,12 @@ smol_socket = ["netlink-sys/smol_socket"]
 
 [dev-dependencies]
 env_logger = "0.8.2"
-tokio = { version = "1.0.1", default-features = false, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.0.1", default-features = false, features = [
+    "macros",
+    "rt-multi-thread",
+] }
 netlink-packet-route = "0.17"
 netlink-packet-audit = { version = "0.5.0" }
-async-std = {version = "1.9.0", features = ["attributes"]}
 
 [[example]]
 name = "dump_links"
