@@ -20,7 +20,7 @@ tokio = { version = "1.0", default-features = false, features = [
     "time",
 ] }
 netlink-packet-core = "0.7.0"
-netlink-sys = { git = "https://github.com/planetoryd/netlink-sys" }
+netlink-sys = { path = "../netlink-sys" }
 thiserror = "1.0.30"
 
 [features]
@@ -33,9 +33,12 @@ env_logger = "0.8.2"
 tokio = { version = "1.0.1", default-features = false, features = [
     "macros",
     "rt-multi-thread",
+    "process"
 ] }
 netlink-packet-route = "0.17"
-netlink-packet-audit = { version = "0.5.0" }
+netlink-packet-audit = { path = "../netlink-packet-audit" }
+anyhow = "1.0.72"
+async-std = { version = "1.12.0", features = ["async-attributes", "attributes"] }
 
 [[example]]
 name = "dump_links"

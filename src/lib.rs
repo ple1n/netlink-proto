@@ -203,6 +203,7 @@ pub mod sys {
     pub use netlink_sys::SmolSocket;
 }
 
+use crate::sys::AsyncSocket;
 /// Create a new Netlink connection for the given Netlink protocol, and returns
 /// a handle to that connection as well as a stream of unsolicited messages
 /// received by that connection (unsolicited here means messages that are not a
@@ -227,7 +228,7 @@ pub mod sys {
 pub fn new_connection<T>(
     protocol: isize,
 ) -> io::Result<(
-    Connection<T>,
+    Connection<T>, // uses the default socket
     ConnectionHandle<T>,
     UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
 )>
@@ -237,7 +238,7 @@ where
         + packet::NetlinkDeserializable
         + Unpin,
 {
-    new_connection_with_codec(protocol)
+    new_connection_with_codec(protocol, ())
 }
 
 /// Variant of [`new_connection`] that allows specifying a socket type to use
@@ -245,6 +246,7 @@ where
 #[allow(clippy::type_complexity)]
 pub fn new_connection_with_socket<T, S>(
     protocol: isize,
+    ctx: <S as AsyncSocket>::T,
 ) -> io::Result<(
     Connection<T, S>,
     ConnectionHandle<T>,
@@ -257,14 +259,15 @@ where
         + Unpin,
     S: sys::AsyncSocket,
 {
-    new_connection_with_codec(protocol)
+    new_connection_with_codec(protocol, ctx)
 }
 
-/// Variant of [`new_connection`] that allows specifying a socket type to use
+/// Variant of [`new_connection`] that allows specifying a codec type AND a socket type to use
 /// for async handling and a special codec
 #[allow(clippy::type_complexity)]
 pub fn new_connection_with_codec<T, S, C>(
     protocol: isize,
+    ctx: <S as AsyncSocket>::T,
 ) -> io::Result<(
     Connection<T, S, C>,
     ConnectionHandle<T>,
@@ -282,7 +285,7 @@ where
     let (messages_tx, messages_rx) =
         unbounded::<(packet::NetlinkMessage<T>, sys::SocketAddr)>();
     Ok((
-        Connection::new(requests_rx, messages_tx, protocol)?,
+        Connection::new(requests_rx, messages_tx, protocol, ctx)?,
         ConnectionHandle::new(requests_tx),
         messages_rx,
     ))

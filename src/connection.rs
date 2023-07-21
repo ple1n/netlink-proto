@@ -15,6 +15,7 @@ use log::{error, warn};
 use netlink_packet_core::{
     NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
+use netlink_sys::proxy::Initable;
 
 use crate::{
     codecs::{NetlinkCodec, NetlinkMessageCodec},
@@ -65,8 +66,9 @@ where
             SocketAddr,
         )>,
         protocol: isize,
+        ctx: <S as AsyncSocket>::T,
     ) -> io::Result<Self> {
-        let socket = S::new(protocol)?;
+        let socket = S::new(protocol, ctx)?;
         Ok(Connection {
             socket: NetlinkFramed::new(socket),
             protocol: Protocol::new(),

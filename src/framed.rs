@@ -160,8 +160,8 @@ where
 // The theoritical max netlink packet size is 32KB for a netlink
 // message since Linux 4.9 (16KB before). See:
 // https://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git/commit/?id=d35c99ff77ecb2eb239731b799386f3b3637a31e
-const INITIAL_READER_CAPACITY: usize = 64 * 1024;
-const INITIAL_WRITER_CAPACITY: usize = 8 * 1024;
+pub const INITIAL_READER_CAPACITY: usize = 64 * 1024;
+pub const INITIAL_WRITER_CAPACITY: usize = 8 * 1024;
 
 impl<T, S, C> NetlinkFramed<T, S, C> {
     /// Create a new `NetlinkFramed` backed by the given socket and codec.
