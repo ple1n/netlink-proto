@@ -246,7 +246,7 @@ where
 #[allow(clippy::type_complexity)]
 pub fn new_connection_with_socket<T, S>(
     protocol: isize,
-    ctx: <S as AsyncSocket>::T,
+    ctx: <S as AsyncSocket>::T<'_>,
 ) -> io::Result<(
     Connection<T, S>,
     ConnectionHandle<T>,
@@ -267,7 +267,7 @@ where
 #[allow(clippy::type_complexity)]
 pub fn new_connection_with_codec<T, S, C>(
     protocol: isize,
-    ctx: <S as AsyncSocket>::T,
+    ctx: <S as AsyncSocket>::T<'_>,
 ) -> io::Result<(
     Connection<T, S, C>,
     ConnectionHandle<T>,

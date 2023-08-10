@@ -66,7 +66,7 @@ where
             SocketAddr,
         )>,
         protocol: isize,
-        ctx: <S as AsyncSocket>::T,
+        ctx: <S as AsyncSocket>::T<'_>,
     ) -> io::Result<Self> {
         let socket = S::new(protocol, ctx)?;
         Ok(Connection {
