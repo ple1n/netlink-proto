@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use bytes::BytesMut;
+use netlink_sys::AsyncSocketExt;
 use std::{
     fmt::Debug,
     io,
@@ -66,7 +67,7 @@ where
             reader.clear();
             reader.reserve(INITIAL_READER_CAPACITY);
 
-            *in_addr = match ready!(socket.poll_recv_from(cx, reader)) {
+            *in_addr = match ready!(socket.poll_recv_from_buf(cx, reader)) {
                 Ok(addr) => addr,
                 Err(e) => {
                     error!("failed to read from netlink socket: {:?}", e);

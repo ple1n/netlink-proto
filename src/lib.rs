@@ -238,7 +238,7 @@ where
         + packet::NetlinkDeserializable
         + Unpin,
 {
-    new_connection_with_codec(protocol, ())
+    new_connection_with_codec(protocol)
 }
 
 /// Variant of [`new_connection`] that allows specifying a socket type to use
@@ -246,7 +246,6 @@ where
 #[allow(clippy::type_complexity)]
 pub fn new_connection_with_socket<T, S>(
     protocol: isize,
-    ctx: <S as AsyncSocket>::T<'_>,
 ) -> io::Result<(
     Connection<T, S>,
     ConnectionHandle<T>,
@@ -259,15 +258,14 @@ where
         + Unpin,
     S: sys::AsyncSocket,
 {
-    new_connection_with_codec(protocol, ctx)
+    new_connection_with_codec(protocol)
 }
 
-/// Variant of [`new_connection`] that allows specifying a codec type AND a socket type to use
-/// for async handling and a special codec
+/// Variant of [`new_connection`] that allows specifying a codec type AND a
+/// socket type to use for async handling and a special codec
 #[allow(clippy::type_complexity)]
 pub fn new_connection_with_codec<T, S, C>(
     protocol: isize,
-    ctx: <S as AsyncSocket>::T<'_>,
 ) -> io::Result<(
     Connection<T, S, C>,
     ConnectionHandle<T>,
@@ -285,8 +283,33 @@ where
     let (messages_tx, messages_rx) =
         unbounded::<(packet::NetlinkMessage<T>, sys::SocketAddr)>();
     Ok((
-        Connection::new(requests_rx, messages_tx, protocol, ctx)?,
+        Connection::new(requests_rx, messages_tx, protocol)?,
         ConnectionHandle::new(requests_tx),
         messages_rx,
     ))
+}
+
+pub fn new_connection_from_socket<T, S, C>(
+    socket: S,
+) -> (
+    Connection<T, S, C>,
+    ConnectionHandle<T>,
+    UnboundedReceiver<(packet::NetlinkMessage<T>, sys::SocketAddr)>,
+)
+where
+    T: Debug
+        + packet::NetlinkSerializable
+        + packet::NetlinkDeserializable
+        + Unpin,
+    S: sys::AsyncSocket,
+    C: NetlinkMessageCodec,
+{
+    let (requests_tx, requests_rx) = unbounded::<Request<T>>();
+    let (messages_tx, messages_rx) =
+        unbounded::<(packet::NetlinkMessage<T>, sys::SocketAddr)>();
+    (
+        Connection::from_socket(requests_rx, messages_tx, socket),
+        ConnectionHandle::new(requests_tx),
+        messages_rx,
+    )
 }

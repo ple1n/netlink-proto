@@ -39,6 +39,7 @@ netlink-packet-route = "0.17"
 netlink-packet-audit = { path = "../netlink-packet-audit" }
 anyhow = "1.0.72"
 async-std = { version = "1.12.0", features = ["async-attributes", "attributes"] }
+nix = "0.26.2"
 
 [[example]]
 name = "dump_links"

@@ -15,7 +15,6 @@ use log::{error, warn};
 use netlink_packet_core::{
     NetlinkDeserializable, NetlinkMessage, NetlinkPayload, NetlinkSerializable,
 };
-use netlink_sys::proxy::Initable;
 
 use crate::{
     codecs::{NetlinkCodec, NetlinkMessageCodec},
@@ -66,9 +65,8 @@ where
             SocketAddr,
         )>,
         protocol: isize,
-        ctx: <S as AsyncSocket>::T<'_>,
     ) -> io::Result<Self> {
-        let socket = S::new(protocol, ctx)?;
+        let socket = S::new(protocol)?;
         Ok(Connection {
             socket: NetlinkFramed::new(socket),
             protocol: Protocol::new(),
@@ -76,6 +74,23 @@ where
             unsolicited_messages_tx: Some(unsolicited_messages_tx),
             socket_closed: false,
         })
+    }
+
+    pub fn from_socket(
+        requests_rx: UnboundedReceiver<Request<T>>,
+        unsolicited_messages_tx: UnboundedSender<(
+            NetlinkMessage<T>,
+            SocketAddr,
+        )>,
+        socket: S,
+    ) -> Self {
+        Connection {
+            socket: NetlinkFramed::new(socket),
+            protocol: Protocol::new(),
+            requests_rx: Some(requests_rx),
+            unsolicited_messages_tx: Some(unsolicited_messages_tx),
+            socket_closed: false,
+        }
     }
 
     pub fn socket_mut(&mut self) -> &mut S {
