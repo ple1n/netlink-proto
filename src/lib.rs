@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-
+#![allow(unused)]
 //! `netlink-proto` is an asynchronous implementation of the Netlink
 //! protocol.
 //!
