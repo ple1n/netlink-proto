@@ -23,7 +23,8 @@ where
     T: Debug,
 {
     // Here is the thing to be proxied
-    // requests_tx is a sender that gets requests with a callback-sender attached
+    // requests_tx is a sender that gets requests with a callback-sender
+    // attached
     pub fn new(requests_tx: UnboundedSender<Request<T>>) -> Self {
         ConnectionHandle { requests_tx }
     }
@@ -37,7 +38,7 @@ where
     ///   message, the stream is
     /// closed
     pub fn request(
-        &mut self,
+        &self,
         message: NetlinkMessage<T>,
         destination: SocketAddr,
     ) -> Result<impl Stream<Item = NetlinkMessage<T>>, Error<T>> {
@@ -61,7 +62,7 @@ where
     }
 
     pub fn notify(
-        &mut self,
+        &self,
         message: NetlinkMessage<T>,
         destination: SocketAddr,
     ) -> Result<(), Error<T>> {
