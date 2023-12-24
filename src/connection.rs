@@ -152,7 +152,7 @@ where
             trace!("polling socket");
             match socket.as_mut().poll_next(cx) {
                 Poll::Ready(Some((message, addr))) => {
-                    trace!("read datagram from socket");
+                    trace!("read datagram from socket, src {}", addr);
                     self.protocol.handle_message(message, addr);
                 }
                 Poll::Ready(None) => {
@@ -190,7 +190,7 @@ where
             while let Some((message, source)) =
                 self.protocol.incoming_requests.pop_front()
             {
-                warn!(
+                debug!(
                     "ignoring unsolicited message {:?} from {:?}",
                     message, source
                 );
@@ -317,25 +317,36 @@ where
         trace!("polling Connection");
         let pinned = self.get_mut();
 
-        debug!("reading incoming messages");
+        debug!("poll: handling requests");
+
+     
+        pinned.poll_requests(cx);
+
+        debug!("poll: reading incoming messages");
+        // dbg!(
+        //     &pinned.protocol.pending_requests,
+        //     &pinned.protocol.pending_requests as *const _,
+        //     std::time::Instant::now()
+        // );
         pinned.poll_read_messages(cx);
 
-        debug!("forwarding unsolicited messages to the connection handle");
+        debug!(
+            "poll: forwarding unsolicited messages to the connection handle"
+        );
+     
         pinned.forward_unsolicited_messages();
 
         debug!(
-            "forwaring responses to previous requests to the connection handle"
+            "poll: forwaring responses to previous requests to the connection handle"
         );
+ 
         pinned.forward_responses();
 
-        debug!("handling requests");
-        pinned.poll_requests(cx);
-
-        debug!("sending messages");
+        debug!("poll: sending messages");
         pinned.poll_send_messages(cx);
 
-        trace!("done polling Connection");
-
+        trace!("poll: done polling Connection");
+     
         if pinned.should_shut_down() {
             Poll::Ready(())
         } else {

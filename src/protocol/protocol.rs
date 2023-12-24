@@ -14,7 +14,7 @@ use super::Request;
 use crate::sys::SocketAddr;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
-struct RequestId {
+pub struct RequestId {
     sequence_number: u32,
     port: u32,
 }
@@ -36,7 +36,7 @@ pub struct Response<T, M> {
 }
 
 #[derive(Debug)]
-struct PendingRequest<M> {
+pub struct PendingRequest<M> {
     expecting_ack: bool,
     metadata: M,
 }
@@ -48,7 +48,7 @@ pub struct Protocol<T, M> {
 
     /// Requests for which we're awaiting a response. Metadata are
     /// associated with each request.
-    pending_requests: HashMap<RequestId, PendingRequest<M>>,
+    pub pending_requests: HashMap<RequestId, PendingRequest<M>>,
 
     /// Responses to pending requests
     pub incoming_responses: VecDeque<Response<T, M>>,
@@ -90,6 +90,7 @@ where
         {
             Self::handle_response(&mut self.incoming_responses, entry, message);
         } else {
+            debug!("no entry found");
             self.incoming_requests.push_back((message, source));
         }
     }
@@ -162,6 +163,7 @@ where
             || flags & NLM_F_ECHO == NLM_F_ECHO
             || expecting_ack
         {
+            trace!("insert pending_requests {:?}", request_id);
             self.pending_requests.insert(
                 request_id,
                 PendingRequest {
