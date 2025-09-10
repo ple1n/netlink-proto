@@ -1,8 +1,9 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 name = "netlink-proto"
-version = "0.11.2"
-edition = "2018"
+version = "0.12.0"
+edition = "2021"
+rust-version = "1.75"
 
 homepage = "https://github.com/rust-netlink/netlink-proto"
 keywords = ["netlink", "linux", "async"]
@@ -19,9 +20,9 @@ tokio = { version = "1.0", default-features = false, features = [
     "io-util",
     "time",
 ] }
-netlink-packet-core = "0.7.0"
-netlink-sys = { path = "../netlink-sys" }
-thiserror = "1.0.30"
+netlink-packet-core.workspace = true
+netlink-sys.workspace = true
+thiserror = "2"
 
 [features]
 default = ["tokio_socket"]
@@ -29,24 +30,24 @@ tokio_socket = ["netlink-sys/tokio_socket"]
 smol_socket = ["netlink-sys/smol_socket"]
 
 [dev-dependencies]
+
 env_logger = "0.8.2"
+netlink-packet-route.workspace = true
+netlink-packet-audit.workspace = true
+anyhow = "1.0.72"
+async-std = { version = "1.9.0", features = ["attributes"] }
+nix = "0.26.2"
 tokio = { version = "1.0.1", default-features = false, features = [
     "macros",
     "rt-multi-thread",
-    "process"
+    "time",
 ] }
-netlink-packet-route = "0.17"
-netlink-packet-audit = { path = "../netlink-packet-audit" }
-anyhow = "1.0.72"
-async-std = { version = "1.12.0", features = ["async-attributes", "attributes"] }
-nix = "0.26.2"
-
 [[example]]
 name = "dump_links"
 
 [[example]]
 name = "dump_links_async"
-required-features = ["smol_socket"]
+required-features = ["tokio_socket"]
 
 [[example]]
 name = "audit_netlink_events"

@@ -110,13 +110,11 @@
 //! ```rust,no_run
 //! use futures::StreamExt;
 //!
-//! use netlink_packet_route::{
-//!     LinkMessage,
+//! use netlink_packet_route::{link::LinkMessage, RouteNetlinkMessage};
+//! use netlink_packet_core::{
 //!     NetlinkHeader,
 //!     NetlinkMessage,
-//!     RtnlMessage,
-//!     NLM_F_DUMP,
-//!     NLM_F_REQUEST,
+//!     NLM_F_REQUEST, NLM_F_DUMP
 //! };
 //!
 //! use netlink_proto::{
@@ -140,7 +138,7 @@
 //!
 //!     let msg = NetlinkMessage::new(
 //!         nl_hdr,
-//!         RtnlMessage::GetLink(LinkMessage::default()).into(),
+//!         RouteNetlinkMessage::GetLink(LinkMessage::default()).into(),
 //!     );
 //!
 //!     // Send the request
@@ -289,7 +287,10 @@ where
     ))
 }
 
-pub fn new_connection_from_socket<T, S, C>(
+/// Variant of [`new_connection`] that allows specifying a socket type to use
+/// for async handling, a special codec and a socket
+#[allow(clippy::type_complexity)]
+pub fn from_socket_with_codec<T, S, C>(
     socket: S,
 ) -> (
     Connection<T, S, C>,

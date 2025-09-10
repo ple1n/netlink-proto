@@ -35,8 +35,7 @@ where
     /// - **acknowledgements**: when an acknowledgement is received, the stream
     ///   is closed
     /// - **end of dump messages**: similarly, upon receiving an "end of dump"
-    ///   message, the stream is
-    /// closed
+    ///   message, the stream is closed
     pub fn request(
         &self,
         message: NetlinkMessage<T>,
@@ -44,7 +43,7 @@ where
     ) -> Result<impl Stream<Item = NetlinkMessage<T>>, Error<T>> {
         let (tx, rx) = unbounded::<NetlinkMessage<T>>();
         let request = Request::from((message, destination, tx));
-        debug!("handle: forwarding new request to connection");
+        trace!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request).map_err(
             |e| {
                 // the channel is unbounded, so it can't be full. If this
@@ -68,7 +67,7 @@ where
     ) -> Result<(), Error<T>> {
         let (tx, _rx) = unbounded::<NetlinkMessage<T>>();
         let request = Request::from((message, destination, tx));
-        debug!("handle: forwarding new request to connection");
+        trace!("handle: forwarding new request to connection");
         UnboundedSender::unbounded_send(&self.requests_tx, request)
             .map_err(|_| Error::ConnectionClosed)
     }

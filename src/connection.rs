@@ -50,6 +50,10 @@ where
         Option<UnboundedSender<(NetlinkMessage<T>, SocketAddr)>>,
 
     socket_closed: bool,
+
+    forward_noop: bool,
+    forward_done: bool,
+    forward_ack: bool,
 }
 
 impl<T, S, C> Connection<T, S, C>
@@ -73,24 +77,25 @@ where
             requests_rx: Some(requests_rx),
             unsolicited_messages_tx: Some(unsolicited_messages_tx),
             socket_closed: false,
+            forward_noop: false,
+            forward_done: false,
+            forward_ack: false,
         })
     }
 
-    pub fn from_socket(
-        requests_rx: UnboundedReceiver<Request<T>>,
-        unsolicited_messages_tx: UnboundedSender<(
-            NetlinkMessage<T>,
-            SocketAddr,
-        )>,
-        socket: S,
-    ) -> Self {
-        Connection {
-            socket: NetlinkFramed::new(socket),
-            protocol: Protocol::new(),
-            requests_rx: Some(requests_rx),
-            unsolicited_messages_tx: Some(unsolicited_messages_tx),
-            socket_closed: false,
-        }
+    /// Whether [NetlinkPayload::Noop] should forwared to handler
+    pub fn set_forward_noop(&mut self, value: bool) {
+        self.forward_noop = value;
+    }
+
+    /// Whether [NetlinkPayload::Done] should forwared to handler
+    pub fn set_forward_done(&mut self, value: bool) {
+        self.forward_done = value;
+    }
+
+    /// Whether [NetlinkPayload::Ack] should forwared to handler
+    pub fn set_forward_ack(&mut self, value: bool) {
+        self.forward_ack = value;
     }
 
     pub fn socket_mut(&mut self) -> &mut S {
@@ -106,17 +111,23 @@ where
         } = self;
         let mut socket = Pin::new(socket);
 
-        while !protocol.outgoing_messages.is_empty() {
+        if !protocol.outgoing_messages.is_empty() {
             trace!(
                 "found outgoing message to send checking if socket is ready"
             );
-            if let Poll::Ready(Err(e)) = Pin::as_mut(&mut socket).poll_ready(cx)
-            {
-                // Sink errors are usually not recoverable. The socket
-                // probably shut down.
-                warn!("netlink socket shut down: {:?}", e);
-                self.socket_closed = true;
-                return;
+            match Pin::as_mut(&mut socket).poll_ready(cx) {
+                Poll::Ready(Err(e)) => {
+                    // Sink errors are usually not recoverable. The socket
+                    // probably shut down.
+                    warn!("netlink socket shut down: {:?}", e);
+                    self.socket_closed = true;
+                    return;
+                }
+                Poll::Pending => {
+                    trace!("poll is not ready, returning");
+                    return;
+                }
+                Poll::Ready(Ok(_)) => {}
             }
 
             let (mut message, addr) =
@@ -225,11 +236,13 @@ where
             }
         }
 
+        // Rust 1.82 has Option::is_none_or() which can simplify
+        // below checks but that version is released on 2024 Oct. 17 which
+        // is not available on old OS like Ubuntu 24.04 LTS, RHEL 9 yet.
         if ready
-            || self
-                .unsolicited_messages_tx
-                .as_ref()
-                .map_or(true, |x| x.is_closed())
+            || self.unsolicited_messages_tx.as_ref().is_none()
+            || self.unsolicited_messages_tx.as_ref().map(|x| x.is_closed())
+                == Some(true)
         {
             // The channel is closed so we can drop the sender.
             let _ = self.unsolicited_messages_tx.take();
@@ -253,6 +266,12 @@ where
             if done {
                 use NetlinkPayload::*;
                 match &message.payload {
+                    Noop => {
+                        if !self.forward_noop {
+                            trace!("Not forwarding Noop message to the handle");
+                            continue;
+                        }
+                    }
                     // Since `self.protocol` set the `done` flag here,
                     // we know it has already dropped the request and
                     // its associated metadata, ie the UnboundedSender
@@ -261,12 +280,11 @@ where
                     // dropping the last instance of that sender,
                     // hence closing the channel and signaling the
                     // handle that no more messages are expected.
-                    Noop | Done(_) => {
-                        trace!(
-                            "not forwarding Noop/Ack/Done message to \
-                            the handle"
-                        );
-                        continue;
+                    Done(_) => {
+                        if !self.forward_done {
+                            trace!("Not forwarding Done message to the handle");
+                            continue;
+                        }
                     }
                     // I'm not sure how we should handle overrun messages
                     Overrun(_) => unimplemented!("overrun is not handled yet"),
@@ -275,11 +293,8 @@ where
                     // because only the user knows how they want to
                     // handle them.
                     Error(err_msg) => {
-                        if err_msg.code.is_none() {
-                            trace!(
-                                "not forwarding Noop/Ack/Done message to \
-                                the handle"
-                            );
+                        if err_msg.code.is_none() && !self.forward_ack {
+                            trace!("Not forwarding Ack message to the handle");
                             continue;
                         }
                     }
@@ -305,6 +320,33 @@ where
     }
 }
 
+impl<T, S, C> Connection<T, S, C>
+where
+    T: Debug + NetlinkSerializable + NetlinkDeserializable + Unpin,
+    S: AsyncSocket,
+    C: NetlinkMessageCodec,
+{
+    pub(crate) fn from_socket(
+        requests_rx: UnboundedReceiver<Request<T>>,
+        unsolicited_messages_tx: UnboundedSender<(
+            NetlinkMessage<T>,
+            SocketAddr,
+        )>,
+        socket: S,
+    ) -> Self {
+        Connection {
+            socket: NetlinkFramed::new(socket),
+            protocol: Protocol::new(),
+            requests_rx: Some(requests_rx),
+            unsolicited_messages_tx: Some(unsolicited_messages_tx),
+            socket_closed: false,
+            forward_noop: false,
+            forward_done: false,
+            forward_ack: false,
+        }
+    }
+}
+
 impl<T, S, C> Future for Connection<T, S, C>
 where
     T: Debug + NetlinkSerializable + NetlinkDeserializable + Unpin,
@@ -317,32 +359,22 @@ where
         trace!("polling Connection");
         let pinned = self.get_mut();
 
-        debug!("poll: handling requests");
-
-     
-        pinned.poll_requests(cx);
-
-        debug!("poll: reading incoming messages");
-        // dbg!(
-        //     &pinned.protocol.pending_requests,
-        //     &pinned.protocol.pending_requests as *const _,
-        //     std::time::Instant::now()
-        // );
+        trace!("reading incoming messages");
         pinned.poll_read_messages(cx);
 
-        debug!(
-            "poll: forwarding unsolicited messages to the connection handle"
-        );
-     
+        trace!("forwarding unsolicited messages to the connection handle");
         pinned.forward_unsolicited_messages();
 
-        debug!(
-            "poll: forwaring responses to previous requests to the connection handle"
+        trace!(
+            "forwarding responses to previous requests to the connection handle"
         );
  
         pinned.forward_responses();
 
-        debug!("poll: sending messages");
+        trace!("handling requests");
+        pinned.poll_requests(cx);
+
+        trace!("sending messages");
         pinned.poll_send_messages(cx);
 
         trace!("poll: done polling Connection");

@@ -1,33 +1,33 @@
 // SPDX-License-Identifier: MIT
 
 use futures::StreamExt;
-use netlink_packet_core::{NLM_F_REQUEST, NLM_F_DUMP, NetlinkHeader, NetlinkMessage};
-use netlink_packet_route::{
-    LinkMessage, RtnlMessage
+use netlink_packet_core::{
+    NetlinkHeader, NetlinkMessage, NLM_F_DUMP, NLM_F_REQUEST,
 };
+use netlink_packet_route::{link::LinkMessage, RouteNetlinkMessage};
 use netlink_proto::{
     new_connection,
     sys::{protocols::NETLINK_ROUTE, SocketAddr},
 };
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> Result<(), String> {
     // Create the netlink socket. Here, we won't use the channel that
     // receives unsolicited messages.
-    let (conn, mut handle, _) = new_connection(NETLINK_ROUTE).map_err(|e| {
+    let (conn, handle, _) = new_connection(NETLINK_ROUTE).map_err(|e| {
         format!("Failed to create a new netlink connection: {}", e)
     })?;
 
     // Spawn the `Connection` so that it starts polling the netlink
     // socket in the background.
-    let _ = async_std::task::spawn(conn);
+    async_std::task::spawn(conn);
 
     // Create the netlink message that requests the links to be dumped
     let mut nl_hdr = NetlinkHeader::default();
     nl_hdr.flags = NLM_F_DUMP | NLM_F_REQUEST;
     let request = NetlinkMessage::new(
         nl_hdr,
-        RtnlMessage::GetLink(LinkMessage::default()).into(),
+        RouteNetlinkMessage::GetLink(LinkMessage::default()).into(),
     );
 
     // Send the request
@@ -36,12 +36,8 @@ async fn main() -> Result<(), String> {
         .map_err(|e| format!("Failed to send request: {}", e))?;
 
     // Print all the messages received in response
-    loop {
-        if let Some(packet) = response.next().await {
-            println!("<<< {:?}", packet);
-        } else {
-            break;
-        }
+    while let Some(packet) = response.next().await {
+        println!("<<< {:?}", packet);
     }
 
     Ok(())
