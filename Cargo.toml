@@ -1,6 +1,6 @@
 [package]
 authors = ["Corentin Henry <corentinhenry@gmail.com>"]
-name = "netlink-proto"
+name = "nsproxy-netlink-proto"
 version = "0.12.0"
 edition = "2021"
 rust-version = "1.75"
@@ -20,8 +20,8 @@ tokio = { version = "1.0", default-features = false, features = [
     "io-util",
     "time",
 ] }
-netlink-packet-core.workspace = true
-netlink-sys.workspace = true
+netlink-packet-core = { package = "nsproxy-netlink-packet-core", path = "../netlink-packet-core" }
+netlink-sys = { package = "nsproxy-netlink-sys", path = "../netlink-sys" }
 thiserror = "2"
 
 [features]
@@ -32,8 +32,8 @@ smol_socket = ["netlink-sys/smol_socket"]
 [dev-dependencies]
 
 env_logger = "0.8.2"
-netlink-packet-route.workspace = true
-netlink-packet-audit.workspace = true
+netlink-packet-route = { package = "nsproxy-netlink-packet-route", path = "../netlink-packet-route" }
+netlink-packet-audit = { package = "nsproxy-netlink-packet-audit", path = "../netlink-packet-audit" }
 anyhow = "1.0.72"
 async-std = { version = "1.9.0", features = ["attributes"] }
 nix = "0.26.2"
