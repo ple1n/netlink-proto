@@ -368,7 +368,7 @@ where
         trace!(
             "forwarding responses to previous requests to the connection handle"
         );
- 
+
         pinned.forward_responses();
 
         trace!("handling requests");
@@ -378,7 +378,7 @@ where
         pinned.poll_send_messages(cx);
 
         trace!("poll: done polling Connection");
-     
+
         if pinned.should_shut_down() {
             Poll::Ready(())
         } else {
